@@ -18,7 +18,6 @@ public class LoggingController {
 
     @PostMapping
     public String saveMessage(@RequestBody MessageDto dto) {
-        // Генеруємо унікальний ключ. Можна брати поточний розмір + 1, або UUID
         String key = "msg-" + UUID.randomUUID();
         loggingService.storeMessage(key, dto.getMsg());
         System.out.println("[LoggingService] Received message: " + dto.getMsg());

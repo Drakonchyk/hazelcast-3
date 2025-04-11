@@ -21,7 +21,6 @@ public class LoggingHazelcastService {
 
     @PostConstruct
     public void init() {
-        // Отримуємо мапу з Hazelcast
         messagesMap = hazelcastInstance.getMap(MESSAGES_MAP_NAME);
     }
 

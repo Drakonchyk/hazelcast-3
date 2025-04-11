@@ -17,17 +17,15 @@
     </parent>
 
     <dependencies>
-        <!-- Spring Boot Web (можна Starter-WebFlux, але Web достатньо) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- Hazelcast with Spring integration -->
         <dependency>
             <groupId>com.hazelcast</groupId>
             <artifactId>hazelcast</artifactId>
-            <version>5.3.1</version> <!-- приклад версії, можете обрати іншу -->
+            <version>5.3.1</version>
         </dependency>
         <dependency>
             <groupId>com.hazelcast</groupId>
@@ -35,7 +33,6 @@
             <version>5.3.1</version>
         </dependency>
         
-        <!-- Для виводу логів -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-logging</artifactId>

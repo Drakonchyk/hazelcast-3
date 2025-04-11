@@ -8,8 +8,6 @@ import java.util.List;
 @RestController
 public class ConfigController {
 
-    // Приклад статичного списку екземплярів logging-service:
-    // Можна буде змінювати host/port під час запуску чи конфігурації
     @GetMapping("/services/logging-service")
     public List<ServiceInstance> getLoggingServices() {
         return Arrays.asList(
@@ -18,6 +16,5 @@ public class ConfigController {
             new ServiceInstance("localhost", 8083)
         );
     }
-
-    // Тут можна зробити аналогічно для messages-service, якщо потрібно.
+    
 }
