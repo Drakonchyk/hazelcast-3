@@ -16,6 +16,7 @@
         <module>config-service</module>
         <module>facade-service</module>
         <module>logging-service</module>
+        <module>messages-service</module>
     </modules>
 
     <properties>

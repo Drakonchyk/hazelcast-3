@@ -1,0 +1,8 @@
+/Users/lutyk/Desktop/hazelcast-3/facade-service/src/main/java/com/example/facadeservice/FacadeServiceApplication.java
+/Users/lutyk/Desktop/hazelcast-3/facade-service/src/main/java/com/example/facadeservice/controller/FacadeController.java
+/Users/lutyk/Desktop/hazelcast-3/facade-service/src/main/java/com/example/facadeservice/dto/MessageDto.java
+/Users/lutyk/Desktop/hazelcast-3/facade-service/src/main/java/com/example/facadeservice/dto/ServiceInstanceDto.java
+/Users/lutyk/Desktop/hazelcast-3/facade-service/src/main/java/com/example/facadeservice/kafka/KafkaProducerConfig.java
+/Users/lutyk/Desktop/hazelcast-3/facade-service/src/main/java/com/example/facadeservice/service/ConfigServiceClient.java
+/Users/lutyk/Desktop/hazelcast-3/facade-service/src/main/java/com/example/facadeservice/service/LoggingServiceCaller.java
+/Users/lutyk/Desktop/hazelcast-3/facade-service/src/main/java/com/example/facadeservice/service/MessageServiceCaller.java

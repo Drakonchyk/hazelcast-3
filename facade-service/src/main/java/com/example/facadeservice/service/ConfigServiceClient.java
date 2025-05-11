@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -27,5 +26,14 @@ public class ConfigServiceClient {
             .bodyToFlux(ServiceInstanceDto.class)
             .collectList()
             .block();
+    }
+    public List<ServiceInstanceDto> getMessageServiceInstances() {
+        return webClient
+                .get()
+                .uri(configServerUrl + "/services/messages-service")
+                .retrieve()
+                .bodyToFlux(ServiceInstanceDto.class)
+                .collectList()
+                .block();
     }
 }

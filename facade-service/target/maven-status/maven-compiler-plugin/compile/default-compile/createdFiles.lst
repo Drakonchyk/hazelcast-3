@@ -1,0 +1,10 @@
+com/example/facadeservice/dto/ServiceInstanceDto.class
+com/example/facadeservice/controller/FacadeController.class
+com/example/facadeservice/service/LoggingServiceCaller$1.class
+com/example/facadeservice/service/MessageServiceCaller.class
+com/example/facadeservice/FacadeServiceApplication.class
+com/example/facadeservice/kafka/KafkaProducerConfig.class
+com/example/facadeservice/service/LoggingServiceCaller.class
+com/example/facadeservice/dto/MessageDto.class
+com/example/facadeservice/service/ConfigServiceClient.class
+com/example/facadeservice/service/MessageServiceCaller$1.class

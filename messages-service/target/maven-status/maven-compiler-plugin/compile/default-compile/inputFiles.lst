@@ -1,0 +1,6 @@
+/Users/lutyk/Desktop/hazelcast-3/messages-service/src/main/java/com/example/messages/MessagesServiceApplication.java
+/Users/lutyk/Desktop/hazelcast-3/messages-service/src/main/java/com/example/messages/controller/MessageController.java
+/Users/lutyk/Desktop/hazelcast-3/messages-service/src/main/java/com/example/messages/kafka/KafkaConsumerConfig.java
+/Users/lutyk/Desktop/hazelcast-3/messages-service/src/main/java/com/example/messages/kafka/KafkaMessageListener.java
+/Users/lutyk/Desktop/hazelcast-3/messages-service/src/main/java/com/example/messages/model/InMemoryStorage.java
+/Users/lutyk/Desktop/hazelcast-3/messages-service/src/main/java/com/example/messages/model/Message.java

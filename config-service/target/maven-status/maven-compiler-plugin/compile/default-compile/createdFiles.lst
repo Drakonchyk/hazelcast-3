@@ -1,0 +1,3 @@
+com/example/configservice/ConfigServiceApplication.class
+com/example/configservice/controller/ConfigController.class
+com/example/configservice/controller/ServiceInstance.class
