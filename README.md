@@ -1,105 +1,220 @@
-# hazelcast-3
+## Distributed Microservices Example
 
-### **Project Overview**
+This project demonstrates a Java-based microservices architecture featuring:
 
-This repository showcases a microservices-based system in **Java Spring Boot** leveraging a **Hazelcast** distributed map to store messages. The system consists of:
+* **Config Service** — central registry of service instances
+* **Logging Service** — stores logs in a Hazelcast distributed map
+* **Messages Service** — consumes messages from a Kafka topic and stores in local memory
+* **Facade Service** — client‐facing gateway that dispatches requests randomly to available instances
 
-1. **Config-Service** – provides a REST endpoint listing the available addresses (IP/port) of other microservices (e.g., `logging-service`).
-2. **Logging-Service** – stores messages in a **Hazelcast** distributed map. Multiple instances can run simultaneously, forming a Hazelcast cluster.
-3. **Facade-Service** – receives HTTP requests from the client, then randomly selects one `logging-service` instance to forward requests for storing or retrieving messages.
+It covers two labs:
 
-### **Key Features**
-- **Distributed Storage**: Messages are stored in a Hazelcast distributed map, ensuring high availability when multiple `logging-service` instances are running.
-- **Service Discovery**: `facade-service` consults `config-service` to discover available `logging-service` addresses dynamically.
-- **Scalability**: Multiple copies of `logging-service` can be launched, each embedding a Hazelcast node.
-- **Load Balancing**: `facade-service` randomly selects a `logging-service` instance for each request. If one instance is offline, the service picks another.
+1. **Lab 3** — Hazelcast Distributed Map for logging
+2. **Lab 4** — Kafka message queue for inter‐service messaging and failure resilience
 
-### **System Architecture**
+---
+
+### 📁 Repo Structure
 
 ```
-             +---------------+
-             |config-service |
-             |(REST: /services/logging-service
-             +---------------+
-                    ^
-                    | (Gets IP/port list)
-                    |
-+-------------+      |       +---------------+
-| facade      |---->|       | logging-service (port 8081)
-| service     |              |   + embedded Hazelcast node
-| (port 8080) |<----(random)------ logging-service (port 8082)
-+-------------+              \---- logging-service (port 8083)
+/.
+├── config-service
+│   └── src/main/java/...        # Spring Boot app, /services endpoints
+│   └── src/main/resources/application.properties
+├── logging-service
+│   └── src/main/java/...        # Spring Boot app, HazelcastConfig + /logs endpoints
+│   └── src/main/resources/
+├── messages-service
+│   └── src/main/java/...        # Spring Boot app, KafkaConsumer + /messages endpoint
+│   └── src/main/resources/application.properties
+├── facade-service
+│   └── src/main/java/...        # Spring Boot app, /facade endpoints
+│   └── src/main/resources/application.properties
+├── docker-compose.yml           # Zookeeper + 3× Kafka brokers
+└── pom.xml                      # Parent multi-module POM
 ```
 
-1. **config-service**: Returns an array of `{"host":"localhost","port":8081}`, etc.  
-2. **facade-service**:  
-   - Receives HTTP `POST/GET` from the client.  
-   - Calls `config-service` to obtain the list of `logging-service` endpoints.  
-   - Randomly picks one endpoint to forward the request.  
-3. **logging-service**:  
-   - Uses **Hazelcast** to store data in a distributed map.  
-   - Each instance runs on a different port (e.g., 8081, 8082, 8083).  
-   - The embedded Hazelcast nodes automatically form a cluster, replicating messages across instances.
+---
 
-### **Requirements**
-- **Java 17+**  
-- **Maven** 3.x  
-- **Spring Boot** 3.x (already declared in the `pom.xml` files)  
+## 🚀 Prerequisites
 
-### **Building**
+* JDK 17+
+* Maven
+* Docker & Docker Compose
+* `jq` (optional, for JSON pretty-print)
 
-In the root folder (where the parent `pom.xml` is located):
+---
+
+## 🛠️ Setup & Run
+
+### 1. Start Kafka cluster
+
 ```bash
-mvn clean install
+# from project root
+docker compose up -d
 ```
-This command will compile and package all modules.
 
-### **Usage**
+This brings up:
 
-1. **Start `config-service`** (e.g., port `8000`):
+* Zookeeper (2181)
+* 3 Kafka brokers, exposed on 29092, 29093, 29094
+
+Verify:
+
+```bash
+docker ps
+docker exec -it kafka1 \
+  kafka-topics --bootstrap-server localhost:29092 \
+    --describe --topic message-topic || \
+  kafka-topics --bootstrap-server localhost:29092 \
+    --create --topic message-topic \
+    --partitions 2 --replication-factor 2
+```
+
+### 2. Build the project
+
+```bash
+mvn clean install -DskipTests
+```
+
+### 3. Run microservices
+
+Open separate terminals (or use background jobs):
+
+```bash
+# Config Service (port 8000)
+mvn -pl config-service spring-boot:run
+
+# Logging Service ×3 (ports 8081, 8082, 8083)
+mvn -pl logging-service spring-boot:run \
+  -Dspring-boot.run.arguments="--server.port=8081" &
+mvn -pl logging-service spring-boot:run \
+  -Dspring-boot.run.arguments="--server.port=8082" &
+mvn -pl logging-service spring-boot:run \
+  -Dspring-boot.run.arguments="--server.port=8083" &
+
+# Messages Service ×2 (ports 8091, 8092)
+mvn -pl messages-service spring-boot:run \
+  -Dspring-boot.run.arguments="--PORT=8091" &
+mvn -pl messages-service spring-boot:run \
+  -Dspring-boot.run.arguments="--PORT=8092" &
+
+# Facade Service (port 7070)
+mvn -pl facade-service spring-boot:run
+```
+
+---
+
+## 🔍 Endpoints
+
+### Config Service (8000)
+
+* `GET /services/logging-service` → list of `{ host, port }`
+* `GET /services/messages-service` → list of `{ host, port }`
+
+### Logging Service (`/logs`)
+
+* `POST /logs`  `{ "msg": "..." }` → store in Hazelcast
+* `GET  /logs`  → returns `Map<id, msg>`
+
+### Messages Service (`/messages`)
+
+* `GET  /messages` → returns stored `List<String>` from in-memory queue
+
+*(service listens on a port and consumes Kafka topic `message-topic` automatically)*
+
+### Facade Service (`/facade`)
+
+* **Logs**
+
+  * `POST /facade/logs`    → proxy to a random logging-service
+  * `GET  /facade/logs`    → read from a random logging-service
+* **Messages**
+
+  * `POST /facade/messages`→ send `msg` to Kafka
+  * `GET  /facade/messages`→ fetch from a random messages-service
+* **Combined**
+
+  * `GET /facade/all` → JSON `{ logs: {...}, messages: [...] }`
+
+---
+
+## 🧪 Testing
+
+1. **Basic Logging**
+
    ```bash
-   cd config-service
-   mvn spring-boot:run
+   for i in {1..10}; do
+     curl -s -X POST -H "Content-Type:application/json" \
+          -d "{\"msg\":\"msg$i\"}" \
+          http://localhost:7070/facade/logs
+   done
+
+   curl -s http://localhost:7070/facade/logs | jq
    ```
-   Verify:
+
+2. **Basic Messaging**
+
    ```bash
-   curl http://localhost:8000/services/logging-service
-   ```
-   Should return a JSON array with IP/port of logging-service instances.
+   for i in {1..10}; do
+     curl -s -X POST -H "Content-Type:application/json" \
+          -d "{\"msg\":\"msg$i\"}" \
+          http://localhost:7070/facade/messages
+   done
 
-2. **Launch multiple copies** of `logging-service` (e.g., ports 8081, 8082, 8083). Each uses embedded Hazelcast:
+   # verify messages-service consoles show “Consumed: msg#”
+   curl -s http://localhost:7070/facade/messages | jq
+   ```
+
+3. **Combined View**
+
    ```bash
-   cd ../logging-service
-   # 1st instance on port 8081
-   mvn spring-boot:run -Dspring-boot.run.arguments="--server.port=8081"
-
-   # 2nd instance on port 8082
-   mvn spring-boot:run -Dspring-boot.run.arguments="--server.port=8082"
-
-   # 3rd instance on port 8083
-   mvn spring-boot:run -Dspring-boot.run.arguments="--server.port=8083"
+   curl -s http://localhost:7070/facade/all | jq
    ```
 
-3. **Start `facade-service`**:
+4. **Kafka Failover**
+
    ```bash
-   cd ../facade-service
-   mvn spring-boot:run
+   # stop leader broker (e.g. kafka1)
+   docker stop kafka1
+   sleep 10
+
+   # continue sending
+   for i in {11..20}; do
+     curl -s -X POST -H "Content-Type:application/json" \
+          -d "{\"msg\":\"msg$i\"}" \
+          http://localhost:7070/facade/messages
+   done
+
+   # messages-service should auto-consume msg11…msg20
+   curl -s http://localhost:7070/facade/messages | jq
    ```
-   Now it is ready to handle HTTP requests from the client.
 
-4. **Test**:
-   - **Send messages** (POST):  
-     ```bash
-     curl -X POST -H "Content-Type: application/json" \
-          -d '{"msg":"Hello Hazelcast!"}' \
-          http://localhost:8080/facade/messages
-     ```
-   - **Retrieve messages** (GET):  
-     ```bash
-     curl http://localhost:8080/facade/messages
-     ```
-     Will return a JSON object/array of all stored messages.
+---
 
-5. **Resilience check**: Stop 1-2 of the `logging-service` instances. Repeat the GET request. You should still get all messages via the remaining instance(s).
+## ⚙️ Configuration
 
+Each service reads its ports and bootstrap addresses from
+`src/main/resources/application.properties` or CLI args:
 
+```properties
+# Example for messages-service:
+spring.kafka.bootstrap-servers=localhost:29092,localhost:29093,localhost:29094
+server.port=${PORT:8091}
+spring.kafka.consumer.group-id=message-group-${server.port}
+```
+
+Adjust as needed for your environment.
+
+---
+
+## 📚 Further Reading
+
+* [Spring Boot Official Docs](https://spring.io/projects/spring-boot)
+* [Hazelcast Documentation](https://docs.hazelcast.org/)
+* [Spring for Apache Kafka](https://spring.io/projects/spring-kafka)
+* [Kafka Quickstart](https://kafka.apache.org/quickstart)
+
+---
+
+**Enjoy exploring distributed maps & message queues in microservices!**
