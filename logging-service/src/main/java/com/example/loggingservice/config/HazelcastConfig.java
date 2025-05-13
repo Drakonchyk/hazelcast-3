@@ -1,34 +1,35 @@
 package com.example.loggingservice.config;
 
+import java.util.List;
+
 import com.hazelcast.config.Config;
 import com.hazelcast.config.JoinConfig;
-import com.hazelcast.config.NetworkConfig;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class HazelcastConfig {
 
+    @Value("${hazelcast.tcp.members}")
+    private List<String> members;      // comma-separated list from Consul KV
+
     @Bean
-    public Config myHazelcastConfig() {
-        Config config = new Config();
-        config.setInstanceName("logging-hazelcast-instance");
+    public Config customHazelcastConfig() {
+        Config cfg = new Config().setClusterName("log-cluster");
 
-        NetworkConfig network = config.getNetworkConfig();
-        network.setPort(5701).setPortAutoIncrement(true);
-
-        JoinConfig join = network.getJoin();
+        JoinConfig join = cfg.getNetworkConfig().getJoin();
         join.getMulticastConfig().setEnabled(false);
-        join.getTcpIpConfig()
-            .setEnabled(true)
-            .addMember("127.0.0.1"); 
-        return config;
+        join.getTcpIpConfig().setEnabled(true)
+                .setMembers(members);
+
+        return cfg;
     }
 
     @Bean
-    public HazelcastInstance myHazelcastInstance(Config config) {
-        return Hazelcast.newHazelcastInstance(config);
+    public HazelcastInstance hazelcastInstance(Config customHazelcastConfig) {
+        return Hazelcast.newHazelcastInstance(customHazelcastConfig);
     }
 }

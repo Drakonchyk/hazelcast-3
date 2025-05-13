@@ -1,5 +1,3 @@
 /Users/lutyk/Desktop/hazelcast-3/logging-service/src/main/java/com/example/loggingservice/LoggingServiceApplication.java
 /Users/lutyk/Desktop/hazelcast-3/logging-service/src/main/java/com/example/loggingservice/config/HazelcastConfig.java
-/Users/lutyk/Desktop/hazelcast-3/logging-service/src/main/java/com/example/loggingservice/controller/LoggingController.java
-/Users/lutyk/Desktop/hazelcast-3/logging-service/src/main/java/com/example/loggingservice/controller/MessageDto.java
-/Users/lutyk/Desktop/hazelcast-3/logging-service/src/main/java/com/example/loggingservice/service/LoggingHazelcastService.java
+/Users/lutyk/Desktop/hazelcast-3/logging-service/src/main/java/com/example/loggingservice/controller/LogsController.java

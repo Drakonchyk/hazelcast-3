@@ -1,58 +1,110 @@
 package com.example.facadeservice.controller;
 
-import com.example.facadeservice.dto.MessageDto;
-import com.example.facadeservice.service.LoggingServiceCaller;
-import com.example.facadeservice.service.MessageServiceCaller;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import java.time.Duration;
+import java.util.*;
+import java.util.stream.Collectors;
 
-import java.util.List;
-import java.util.Map;
+import com.example.facadeservice.service.LoggingServiceCaller;
+import com.example.facadeservice.service.MessagesServiceCaller;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @RestController
-@RequestMapping("/facade")
 public class FacadeController {
 
-    private final LoggingServiceCaller logCaller;
-    private final MessageServiceCaller msgCaller;
+    private final LoggingServiceCaller logging;
+    private final MessagesServiceCaller messages;
+    private final DiscoveryClient discovery;
+    private final WebClient.Builder wb;
 
-    public FacadeController(LoggingServiceCaller logCaller,
-                            MessageServiceCaller msgCaller) {
-        this.logCaller = logCaller;
-        this.msgCaller = msgCaller;
+    public FacadeController(LoggingServiceCaller logging,
+                            MessagesServiceCaller messages,
+                            DiscoveryClient discovery,
+                            WebClient.Builder wb) {
+        this.logging   = logging;
+        this.messages  = messages;
+        this.discovery = discovery;
+        this.wb        = wb;
     }
 
-    // ——— Logging ———
+    /* ---------- write APIs (unchanged) ---------- */
+
     @PostMapping("/logs")
-    public ResponseEntity<String> sendLog(@RequestBody MessageDto dto) {
-        String result = logCaller.sendMessage(dto);
-        return ResponseEntity.ok(result);
-    }
+    @ResponseStatus(HttpStatus.CREATED)
+    public void writeLog(@RequestBody String body) { logging.send(body); }
+
+    @PostMapping("/messages")
+    @ResponseStatus(HttpStatus.CREATED)
+    public void writeMsg(@RequestBody String body) { messages.send(body); }
+
+    /* ---------- single-instance fetch (unchanged) ---------- */
 
     @GetMapping("/logs")
-    public ResponseEntity<Map<String,String>> readLogs() {
-        return ResponseEntity.ok(logCaller.getAllMessages());
-    }
-
-    // ——— Messaging ———
-    @PostMapping("/messages")
-    public ResponseEntity<String> sendMessage(@RequestBody MessageDto dto) {
-        msgCaller.sendMessage(dto.getMsg());
-        return ResponseEntity.ok("Sent to Kafka");
-    }
+    public Map<String,String> logs() { return logging.fetchLogs(); }
 
     @GetMapping("/messages")
-    public ResponseEntity<List<String>> readMessages() {
-        List<String> all = msgCaller.getAllMessages();
-        return ResponseEntity.ok(all);
+    public List<String> msgs() { return messages.findAll(); }
+
+    /* ---------- NEW: aggregate over *all* replicas ---------- */
+
+    @GetMapping("/all_logs")
+    public Map<String,String> allLogs() {
+        return discovery.getInstances("logging-service").stream()
+                .map(this::fetchLogsFrom)
+                .flatMap(m -> m.entrySet().stream())
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (v1, v2) -> v1             // in case of duplicate keys
+                ));
     }
 
-    // ——— Combined ———
     @GetMapping("/all")
-    public ResponseEntity<Map<String,Object>> all() {
-        return ResponseEntity.ok(Map.of(
-                "logs",     logCaller.getAllMessages(),
-                "messages", msgCaller.getAllMessages()
-        ));
+    public Map<String,Object> all() {
+        Map<String,Object> result = new HashMap<>();
+        result.put("logs",     allLogs());
+        result.put("messages", allMessages());
+        return result;
+    }
+
+    /* ---------- helpers ---------- */
+
+    private List<String> allMessages() {
+        return discovery.getInstances("messages-service").stream()
+                .map(this::fetchMsgsFrom)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+    }
+
+    private final WebClient plain = WebClient.create();   // <-- add one field
+
+    /* fetch /logs from one instance */
+    private Map<String,String> fetchLogsFrom(ServiceInstance inst) {
+        try {
+            return plain.get()                          // <-- use plain client
+                    .uri(inst.getUri() + "/logs")
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<Map<String,String>>() {})
+                    .block(Duration.ofSeconds(5));
+        } catch (Exception ex) {
+            return Map.of();                            // dead node → skip
+        }
+    }
+
+    /* fetch /messages from one instance */
+    private List<String> fetchMsgsFrom(ServiceInstance inst) {
+        try {
+            return plain.get()                         // ← plain, NOT wb.build()
+                    .uri(inst.getUri() + "/messages")
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<List<String>>() {})
+                    .block(Duration.ofSeconds(5));
+        } catch (Exception ex) {
+            return List.of();                          // unreachable/failed → skip
+        }
     }
 }

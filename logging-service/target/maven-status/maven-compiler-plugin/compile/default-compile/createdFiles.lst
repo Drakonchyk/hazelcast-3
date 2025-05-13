@@ -1,5 +1,3 @@
 com/example/loggingservice/LoggingServiceApplication.class
 com/example/loggingservice/config/HazelcastConfig.class
-com/example/loggingservice/controller/MessageDto.class
-com/example/loggingservice/service/LoggingHazelcastService.class
-com/example/loggingservice/controller/LoggingController.class
+com/example/loggingservice/controller/LogsController.class

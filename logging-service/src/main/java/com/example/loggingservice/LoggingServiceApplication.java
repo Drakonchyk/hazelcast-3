@@ -1,33 +1,11 @@
 package com.example.loggingservice;
 
+import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.builder.SpringApplicationBuilder;
-
-import java.io.IOException;
-import java.net.ServerSocket;
 
 @SpringBootApplication
 public class LoggingServiceApplication {
-
     public static void main(String[] args) {
-        // choose a free port in [8081…8083]
-        int port = findFirstFreePort();
-        new SpringApplicationBuilder(LoggingServiceApplication.class)
-                .properties("server.port=" + port)
-                .run(args);
-        System.out.println("Started logging-service on port " + port);
-    }
-
-    private static int findFirstFreePort() {
-        for (int port = 8081; port <= 8083; port++) {
-            try (ServerSocket sock = new ServerSocket(port)) {
-                sock.setReuseAddress(true);
-                return port;
-            } catch (IOException e) {
-                // already in use, try next
-            }
-        }
-        throw new IllegalStateException(
-                "No free port in range " + 8081 + "–" + 8083);
+        SpringApplication.run(LoggingServiceApplication.class, args);
     }
 }

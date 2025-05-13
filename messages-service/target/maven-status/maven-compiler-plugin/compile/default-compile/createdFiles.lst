@@ -1,6 +1,2 @@
 com/example/messages/MessagesServiceApplication.class
-com/example/messages/kafka/KafkaMessageListener.class
-com/example/messages/kafka/KafkaConsumerConfig.class
-com/example/messages/controller/MessageController.class
-com/example/messages/model/InMemoryStorage.class
-com/example/messages/model/Message.class
+com/example/messages/controller/MessagesController.class

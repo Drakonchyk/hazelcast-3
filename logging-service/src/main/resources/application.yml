@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: logging-service
+
+  cloud:
+    consul:
+      host: localhost
+      port: 8500
+      discovery:
+        register: true
+        instance-id: ${spring.application.name}-${server.port}
+    discovery:
+      reactive:
+        enabled: false
+
+  config:
+    import:
+      optional:consul:
+
+server:
+  port: 8081
